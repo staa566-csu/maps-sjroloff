@@ -1,0 +1,51 @@
+---
+title: "maps-sjroloff"
+author: "Samantha Roloff"
+format: html
+editor: visual
+---
+
+For this homework I assignment, I decided to build upon the exploration of the governor_state_toplines_2022 data set available at [data/election-forecasts-2022 at master · fivethirtyeight/data (github.com)](https://github.com/fivethirtyeight/data/tree/master/election-forecasts-2022).
+
+I wanted to show the likelihood of certain states electing a Democrat or Republican governor in November 2022. Since governorship races are at the state level, I chose to display the states as the spatial unit.
+
+A future improvement that I think would add more context is a hover over that displays a line graph of all historical polling (within the last election cycle).
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(usmap)
+gov_df<-readr::read_csv('governor_state_toplines_2022.csv', show_col_types = FALSE)
+
+#head(gov_df)
+#dim(gov_df)
+#decide if the state is likely to have a democrat or republican governor
+gov_df$Governorship_leans <- with(gov_df, ifelse(winner_Rparty < winner_Dparty, 'Democrat', 'Republican'))
+
+# convert date field to date field
+gov_df$forecastdate <- as.Date(gov_df$forecastdate, format = "%m/%d/%Y" )
+#class(gov_df$forecastdate)
+
+#filter to expression field so we don't have duplicate entries/state
+gov_df_lite <- filter(gov_df, expression == '_lite')
+#dim(gov_df_lite)
+#head(gov_df_lite)
+
+gov_df_lite$state<- strtrim(gov_df_lite$district, 2)
+
+
+
+#make a groupby to calculate the likelihood of a democratic win in each state
+gov_df_lite_grpby = gov_df_lite %>% group_by(state)  %>%
+                    summarise(democratic_win  = mean(winner_Dparty),
+                              .groups = 'drop')
+ 
+#gov_df_lite_grpby
+
+
+#make map
+plot_usmap(data = gov_df_lite_grpby, values = 'democratic_win')+scale_fill_continuous(low = "red", high = "blue")+theme(legend.position = "right")+labs(title = "Democratic or Republican Leaning for Governor Races as of 9/17/2022", subtitle = "Blue represents a likely Democratic win; red represents a likely Republican win; 
+states that are gray do not have a governorship race this year.")
+```
